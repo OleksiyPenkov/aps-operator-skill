@@ -1,0 +1,41 @@
+{
+  "title": "APS Operator Skill: A topology-agnostic PVD operator procedure for LLM agents",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "creators": [
+    {
+      "name": "Penkov, Oleksiy V."
+    },
+    {
+      "name": "Fu, Haoyu"
+    },
+    {
+      "name": "Zhan, Yueying"
+    },
+    {
+      "name": "Wu, Pengyuan"
+    },
+    {
+      "name": "Jin, Jiong"
+    }
+  ],
+  "description": "A portable, topology-agnostic operating procedure and recipe verification skill for language-model agents controlling physical vapor deposition (PVD) systems over the APS Control Community MCP server across single-chamber batch (Sputter), load-locked multi-source (ADS), and multi-chamber cluster (Cluster) sputtering architectures.",
+  "keywords": [
+    "physical vapor deposition",
+    "magnetron sputtering",
+    "large language model agent",
+    "Model Context Protocol",
+    "neuro-symbolic control",
+    "laboratory automation"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.48550/arXiv.2609.12796",
+      "relation": "isSupplementTo",
+      "scheme": "doi",
+      "resource_type": "publication-preprint"
+    }
+  ],
+  "version": "2.0.0"
+}

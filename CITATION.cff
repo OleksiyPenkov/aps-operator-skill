@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+message: "If you use this operator skill in your research, please cite both this repository and the accompanying preprint."
+title: "APS Operator Skill: A topology-agnostic PVD operator procedure for LLM agents"
+abstract: >-
+  A portable, topology-agnostic operating procedure and recipe verification skill for language-model
+  agents controlling physical vapor deposition (PVD) systems over the APS Control Community MCP server
+  across single-chamber batch (Sputter), load-locked multi-source (ADS), and multi-chamber cluster (Cluster)
+  sputtering architectures.
+type: software
+authors:
+  - family-names: Penkov
+    given-names: "Oleksiy V."
+  - family-names: Fu
+    given-names: Haoyu
+  - family-names: Zhan
+    given-names: Yueying
+  - family-names: Wu
+    given-names: Pengyuan
+  - family-names: Jin
+    given-names: Jiong
+keywords:
+  - physical vapor deposition
+  - magnetron sputtering
+  - large language model agent
+  - Model Context Protocol
+  - neuro-symbolic control
+  - laboratory automation
+version: "2.0.0"
+date-released: "2026-11-13"
+license: CC-BY-4.0
+repository-code: "https://github.com/OleksiyPenkov/aps-operator-skill"
+references:
+  - type: article
+    title: "Agent-authored deposition recipes for X-ray multilayer mirrors: schema-bound LLM control of a magnetron sputtering system with reflectivity-verified outcomes"
+    status: preprint
+    year: 2026
+    doi: 10.48550/arXiv.2609.12796
+    url: "https://arxiv.org/abs/2609.12796"
+    authors:
+      - family-names: Penkov
+        given-names: "Oleksiy V."
+      - family-names: Fu
+        given-names: Haoyu
+      - family-names: Zhan
+        given-names: Yueying
+      - family-names: Wu
+        given-names: Pengyuan
+      - family-names: Jin
+        given-names: Jiong
