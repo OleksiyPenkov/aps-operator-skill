@@ -48,7 +48,7 @@ Always verify profile-specific worker operations via `describe_dsl.operations`.
 | `mfc` | `mfc <id> <sccm>` | Sets mass flow controller `<id>` setpoint in sccm. Requires at least one valve in `gateValves` to be `open` when `gatingLogic == "OR"`. |
 | `set` | `set <psu> <param> <value>` | Sets a power-supply parameter (`Power`, `Current`, `Frequency`, `DutyCycle`). Parameter names are case-sensitive and mode-dependent. |
 | `power` | `power <psu> on \| off` | Energizes or de-energizes power supply `<psu>`. Does not set the level; always `set` before `power <psu> on`. |
-| `warmup` | `warmup <psu> <target> <seconds>` | Sets `<psu>` primary level to `<target>` and dwells for `<seconds>`. **Does not turn output on**—`power <psu> on` must precede `warmup` if plasma is required. |
+| `warmup` | `warmup <time> [<label>...]` | Interpreter timed stabilization dwell for `<time>` seconds (prefer `delay <time>`). **Does NOT set PSU Power/Current and does NOT turn output on**—always call `set <psu> <Param> <val>` and `power <psu> on` before dwelling/depositing. |
 | `ramp` | `ramp <psu> <target>` | Immediately updates `<psu>` primary setpoint to `<target>` (no built-in dwell). |
 | `swait` | `swait <sensor> <target> <timeout>` | Passive pressure wait: blocks until gauge `<sensor>` reads $\le$ `<target>` within `<timeout>` seconds. Does **not** move any throttle valve. |
 | `pwait` | Profile-dependent (see §3) | Active pressure wait using a throttle controller or chamber throttle valve. |
@@ -81,7 +81,7 @@ Always inspect `describe_dsl.operations` to confirm how the active worker binds 
      - Canonical call: `pwait 2.5mT 180` or `pwait 0 1` (park open).
      - Passing a leading sensor name (`pwait pm 2.5mT 180`) is accepted for legacy compatibility with a validator warning, but the sensor token is **ignored**—`TC1` always regulates `Main` chamber pressure (`pm`). Never write `pwait pl ...` expecting to wait on the load lock; use `swait pl ...`.
    - `deposit`: Bound to `Holder` (`BoundDevice: "Holder"`), 3 arguments `(source, time, retractPos)`.
-     - Positions `Holder` at `<source>`, opens `Shutter` to `<source>` for `<time>` seconds, then parks `Shutter` at `<retractPos>` (`"Home"`, `"1"`, or a valid source/flange token). Passing `"false"` as `<retractPos>` is an error (`-222,"Invalid position"`).
+     - Positions `Holder` at `<source>`, opens `Shutter` to `<source>` for `<time>` seconds, then parks `Shutter` at `<retractPos>` (`"Home"`, `"1"`, or a valid source/flange token). `Holder` remains over `<source>`, so issue `holder Home` during teardown so all drives return to `Home` (`0`). Passing `"false"` as `<retractPos>` is an error (`-222,"Invalid position"`).
 3. **Multi-Chamber Cluster (`Cluster`):**
    - `pwait`: Unbound (`BoundDevice: ""`), 3 arguments `(sensor, target, timeout)`.
      - Canonical call: `pwait C1_pm 3mT 300` or `pwait C1_pm 0 1` (park chamber `C1` throttle open).

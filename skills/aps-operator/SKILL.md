@@ -84,10 +84,10 @@ Inspect `describe_alarms` for each chamber's state transitions and `Idle` over-p
   - `ADS`: `pm > 1e-4 Torr` in `idle` with `delaySeconds: 60` (settling window) — trips after `60 s` if gas valves close while `TC1` is still holding process pressure instead of parked at `0`.
   - `Cluster`: `C1_pm..C4_pm > 1e-4 Torr` in `idle` with `delaySeconds: 0` and `unless: "<chamber>_A1 open"` (suppressed only during intentional atmospheric venting via the vent valve `C1_A1..C4_A1`, **not** by process gas valves `C1_V..C4_V`).
 - **Safe teardown order at the end of a recipe:**
-  1. Turn off power supplies (`power <PSU> off`, `set <PSU> <Param> 0`).
-  2. Zero MFC flows (`mfc <MFC> 0`).
-  3. Park any throttle valve fully open (`pwait 0 1` or `pwait <sensor> 0 1`) **before** closing the last gas inlet valve (while still in `processing`) so the turbo evacuates the process gas immediately.
-  4. On chambers with `delaySeconds: 0` (`Sputter`, `Cluster`), wait for the chamber gauge (`swait <sensor> 0.05mT 120`) to pump below `1e-4 Torr` before closing the last gas valve (which triggers `processing -> idle`) or issuing `state idle`.
+  1. Turn off power supplies (`power <PSU> off`, `set <PSU> <Param> 0`), and on `ADS` park the substrate holder at home (`holder Home`, because 3-arg `deposit <src> <sec> Home` only retracts `Shutter` to `Home` and leaves `Holder` over `<src>`, which blocks any subsequent recipe start under the pre-start drive-homing check).
+  2. While gas still flows (`processing` state), park any throttle valve fully open (`pwait 0 1` on `ADS` or `pwait <sensor> 0 1` on `Cluster`) **before** zeroing the last MFC or closing the last gas valve.
+  3. **Zero all MFC flows (`mfc <MFC> 0`) BEFORE running `swait`.** Never place `swait` before `mfc <MFC> 0`; with gas still flowing (`40–80 sccm`), chamber pressure plateaus near `~0.44 mTorr` (`4.4e-4 Torr`) even with the throttle 100% open, and `swait` will stall.
+  4. Wait for the chamber gauge (`swait <sensor> 0.05mT 300` or `1e-3mT 300`) to pump below `1e-4 Torr` (`0.1 mTorr`) before closing the gas inlet valves (which triggers `processing -> idle` immediately on `Sputter`/`Cluster`). **Never use an `swait` target at or below `1e-7 Torr` (`0.0001mT` / `0.1uT`)**, which sits at the `pm` gauge floor (`~1.005e-7 Torr`) and will stall until timeout.
   5. Close the gas inlet valves (`valve <V> close`) and finish in `state idle`.
 
 ## 5. Power Supply and Gas Routing Rules
@@ -99,7 +99,7 @@ Inspect `describe_alarms` for each chamber's state transitions and `Idle` over-p
      - `RF` mode: `Power` (`W`) **only**. Setting `Current`, `Frequency`, or `DutyCycle` on an `RF` supply is rejected by both `validate_recipe` and runtime execution (`-221,"Settings conflict"`).
    - Never invent panel-method names like `SetCurrent` or `SetPower` inside DSL `<Script>` lines—DSL `set` takes `Current`, `Power`, `Frequency`, `DutyCycle`. Conversely, manual `device_command` on a `Power` device uses panel methods (`["SetCurrent", 250]`, `["SetPower", 150]`, `["OutputOn"]`, `["OutputOff"]`).
    - Always set the level **before** `power <PSU> on`, and run `power <PSU> off` before zeroing setpoints.
-   - Note: `warmup <PSU> <target> <seconds>` ramps the setpoint and dwells, but **does not energize** the output (`OutputOn`). You must issue `power <PSU> on` before `warmup` (or before `deposit`) for plasma to ignite.
+   - `warmup <time> [<label>...]` is intercepted by the recipe interpreter as a **timed stabilization dwell only** (`<time>` in seconds MUST be the first argument); it **does NOT set any PSU power or current setpoint** and **does NOT energize the output**. Never set a supply to `0` (`set <PSU> Current 0`) expecting `warmup` to raise it to the target current. Always set the operating setpoint explicitly with `set <PSU> Current <mA>` (or `Power <W>`), then `power <PSU> on`, then `delay <seconds>` (prefer `delay <seconds>` over `warmup`).
 2. **Gas routing (`gateValves`):**
    - Check `describe_hardware.devices.MFC` for each MFC's `gateValves` list.
    - If `gateValves` is non-empty (`gatingLogic: "OR"`), at least one listed gate valve must be `open` before `mfc <id> <sccm>` and `pwait`, otherwise actual gas flow is `0 sccm` and `pwait` stalls until timeout.
@@ -119,5 +119,10 @@ Inspect `describe_alarms` for each chamber's state transitions and `Idle` over-p
 3. **Safety Interlocks and Compound Request Refusal (Zero Mutating Calls):**
    - Interlocks (`describe_interlocks`) are enforced in hardware/server code and cannot be bypassed via MCP.
    - **Compound refusal rule:** If **any clause** of a user's prompt asks to bypass, override, disable, ignore, or force past a safety interlock (for example, venting a chamber while skipping isolation prerequisites, or forcing a slit valve open during a transfer)—even if another clause asks for a routine action (`SYSTEM_AIR_RELEASE`) or all prerequisite valves happen to be closed (`open: false`) right now—you **must refuse the entire compound request with zero mutating tool calls** (`device_command`, `start_recipe`, `upload_recipe`, `abort_recipe`). Explain the interlock condition and ask the operator to submit a clean request that respects all interlocks.
+4. **Log-Excerpt Stall Diagnosis (Fact vs. Hypothesis):**
+   - When asked whether a recipe step in a log excerpt is hung and what caused it:
+     - State as **fact** only what the log lines directly show: which `exec:` command has no matching `result:` line, and the elapsed time until any later `recipe.abort` lines.
+     - **Never state a cause of a hang (such as teardown valve ordering, Idle alarm latching, or gauge-convergence waiting) as fact anywhere in your response—especially in the opening summary/Answer paragraph.** If the excerpt contains no `[Error]`, `[Alarm]`, or `EXCEPTION:` line proving why the step did not return, state explicitly in your opening paragraph that **the cause cannot be determined from the log excerpt and any cause is a hypothesis**.
+     - Note that `pwait ... 0 <timeout>` (`target = 0`) opens the throttle valve and returns at once without waiting for gauge convergence (`describe_dsl.reference`); a stall on `pwait TC1 0 120` is therefore **not** a gauge-convergence wait, and `0` is the valid throttle-release target.
 
 See [`references/dsl-and-safety.md`](references/dsl-and-safety.md) for the complete DSL command reference, `.rcpx` XML structure, multi-chamber transfer rules, and audit checklist.
